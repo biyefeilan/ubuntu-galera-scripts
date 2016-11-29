@@ -1,0 +1,65 @@
+#!/bin/bash -ue
+
+#garbd -a "gcomm://addr:port?gmcast.listen_addr=tcp://0.0.0.0:4444" -g my_cluster --donor name --sst backup 1>/dev/null 2>&1
+
+. $(dirname $0)/wsrep_sst_common
+
+
+EINVAL=22
+if test -z "$WSREP_SST_OPT_GTID";  then wsrep_log_error "GTID cannot be nil";  exit $EINVAL; fi
+
+
+BACKUP_DIR="/backups/"  # The directory in which you want backups placed
+KEEP_MYSQL="14" # How many days worth of mysql dumps to keep
+
+MYSQL_HOST=${WSREP_SST_OPT_HOST:-localhost}
+MYSQL_USER=${WSREP_SST_OPT_USER:-root}
+MYSQL_PASS=${WSREP_SST_OPT_PSWD:-123456}
+MYSQL_BACKUP_DIR="$BACKUP_DIR/mysql/"
+
+THE_DATE="$(date '+%Y-%m-%d-%H%M')"
+
+FIND_PATH="$(which find)"
+GZIP_PATH="$(which gzip)"
+
+[ -n "$WSREP_SST_OPT_SOCKET" ] && SOCK="-S$WSREP_SST_OPT_SOCKET" || SOCK=
+
+if [[ ! -d $MYSQL_BACKUP_DIR || ! -w $MYSQL_BACKUP_DIR ]]
+then
+    wsrep_log_error "$BACKUP_DIR/mysql/ cant write!"
+    exit $EINVAL
+fi
+
+backup_log()
+{
+    local readonly tst="$(date +%Y%m%d\ %H:%M:%S.%N | cut -b -21)"
+    echo "WSREP_SST_BACKUP[$tst]: $*" >> $MYSQL_BACKUP_DIR"backup.log"
+}
+
+backup_log "Backup Started: $(date +%Y-%m-%d\ %H:%M:%S.%N | cut -b -23)"
+
+MYSQLDUMP="$MYSQLDUMP --defaults-extra-file=$WSREP_SST_OPT_CONF \
+-u$MYSQL_USER -p$MYSQL_PASS -h$MYSQL_HOST $SOCK\
+--add-drop-database --add-drop-table --skip-add-locks --create-options \
+--disable-keys --extended-insert --skip-lock-tables --quick --set-charset \
+--skip-comments --flush-privileges --all-databases --routines --events"
+
+backup_log "Exec SQL: "$MYSQLDUMP
+
+$MYSQLDUMP | $GZIP_PATH > $MYSQL_BACKUP_DIR$THE_DATE.sql.gz
+
+# Delete old dumps
+backup_log "------------------------------------"
+backup_log "Deleting old backups..."
+echo 
+# List dumps to be deleted to stdout (for report)
+DELS=`$FIND_PATH $MYSQL_BACKUP_DIR*.sql.gz -mtime +$KEEP_MYSQL`
+[ ! -z $DELS ] && backup_log $DELS || backup_log "No files need delete."
+# Delete dumps older than specified number of days
+$FIND_PATH $MYSQL_BACKUP_DIR*.sql.gz -mtime +$KEEP_MYSQL -exec rm {} \;
+
+# Announce the completion time
+backup_log "------------------------------------"
+backup_log "Backup Completed: $(date +%Y-%m-%d\ %H:%M:%S.%N | cut -b -23)"
+backup_log "===================================="
+#
