@@ -112,3 +112,23 @@ exit 0
 EOF
 chmod +x /etc/network/if-post-down.d/iptablessave
 chmod +x /etc/network/if-pre-up.d/iptablesload
+
+grep -q '^\*\s*soft\s*nofile' /etc/security/limits.conf
+if [ $? -ne 0 ]; then
+    sed -i '$i*     soft    nofile  65535' /etc/security/limits.conf
+fi
+grep -q '^\*\s*hard\s*nofile' /etc/security/limits.conf
+if [ $? -ne 0 ]; then
+    sed -i '$i*     hard    nofile  65535' /etc/security/limits.conf
+fi
+ulimit -SHn 65535
+
+echo 30 > /proc/sys/net/ipv4/tcp_fin_timeout
+echo 4096 > /proc/sys/net/ipv4/tcp_max_syn_backlog
+echo 262144 > /proc/sys/net/ipv4/tcp_max_tw_buckets
+echo 262144 > /proc/sys/net/ipv4/tcp_max_orphans
+echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle
+echo 0 > /proc/sys/net/ipv4/tcp_timestamps
+echo 0 > /proc/sys/net/ipv4/tcp_ecn
+echo 1 > /proc/sys/net/ipv4/tcp_sack
+echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
