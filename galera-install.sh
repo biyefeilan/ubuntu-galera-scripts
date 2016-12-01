@@ -37,7 +37,7 @@ done
 
 apt-get install software-properties-common
 apt-key adv --keyserver keyserver.ubuntu.com --recv BC19DDBA
-str=`lsb_release -a 2>>/dev/null | awk -F ':' 'BEGIN {dist="ubuntu";release="trusty"} /^(Distributor|Codename)/{if($1 ~ /^Distributor/){dist=$2}else{release=$2}} END {gsub(/\s+/, "", release);gsub(/\s+/, "", dist);printf("%s %s", tolower(dist), tolower(release))}'`
+str=`lsb_release -a 2>>/dev/null | awk -F ':' 'BEGIN {dist="ubuntu";release="trusty"} /^(Distributor|Codename)/{if($1 ~ /^Distributor/){dist=$2}else{release=$2}} END {gsub(/^[^a-zA-Z]*/, "", release);gsub(/^[^a-zA-Z]*/, "", dist);printf("%s %s", tolower(dist), tolower(release))}'`
 echo -e "# Codership Repository (Galera Cluster for MySQL)\n\
 deb http://releases.galeracluster.com/$str main" > /etc/apt/sources.list.d/galera.list
 apt-get update
