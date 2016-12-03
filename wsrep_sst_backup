@@ -39,7 +39,7 @@ backup_log()
 backup_log "Backup Started: $(date +%Y-%m-%d\ %H:%M:%S.%N | cut -b -23)"
 
 MYSQLDUMP="$MYSQLDUMP --defaults-extra-file=$WSREP_SST_OPT_CONF \
--u$MYSQL_USER -p$MYSQL_PASS -h$MYSQL_HOST $SOCK\
+-u$MYSQL_USER -p$MYSQL_PASS -h$MYSQL_HOST $SOCK \
 --add-drop-database --add-drop-table --skip-add-locks --create-options \
 --disable-keys --extended-insert --skip-lock-tables --quick --set-charset \
 --skip-comments --flush-privileges --all-databases --routines --events"
